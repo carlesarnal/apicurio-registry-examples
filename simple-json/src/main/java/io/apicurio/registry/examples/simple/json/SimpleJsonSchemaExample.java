@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.Properties;
 
+import io.apicurio.registry.utils.serde.SerdeConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -41,7 +42,6 @@ import io.apicurio.registry.utils.serde.AbstractKafkaSerDe;
 import io.apicurio.registry.utils.serde.AbstractKafkaSerializer;
 import io.apicurio.registry.utils.serde.JsonSchemaKafkaDeserializer;
 import io.apicurio.registry.utils.serde.JsonSchemaKafkaSerializer;
-import io.apicurio.registry.utils.serde.JsonSchemaSerDeConstants;
 import io.apicurio.registry.utils.serde.strategy.FindLatestIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.SimpleTopicIdStrategy;
 
@@ -105,7 +105,7 @@ public class SimpleJsonSchemaExample {
         // Register the schema with the registry (only if it is not already registered)
         String artifactId = TOPIC_NAME; // use the topic name as the artifactId because we're going to map topic name to artifactId later on (using SimpleTopicIdStrategy in the producer config)
         RegistryRestClient client = RegistryRestClientFactory.create(REGISTRY_URL);
-        client.createArtifact(artifactId, ArtifactType.JSON, IfExistsType.RETURN_OR_UPDATE, new ByteArrayInputStream(SCHEMA.getBytes(StandardCharsets.UTF_8)));
+        client.createArtifact(artifactId, ArtifactType.JSON, new ByteArrayInputStream(SCHEMA.getBytes(StandardCharsets.UTF_8)), IfExistsType.RETURN_OR_UPDATE, false);
 
         // Create the producer.
         Producer<Object, Object> producer = createKafkaProducer();
@@ -178,13 +178,13 @@ public class SimpleJsonSchemaExample {
         props.putIfAbsent(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSchemaKafkaSerializer.class.getName());
 
         // Configure Service Registry location
-        props.putIfAbsent(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, REGISTRY_URL);
+        props.putIfAbsent(SerdeConfig.REGISTRY_URL, REGISTRY_URL);
         // Map the topic name to the artifactId in the registry
-        props.putIfAbsent(AbstractKafkaSerializer.REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM, SimpleTopicIdStrategy.class.getName());
+        props.putIfAbsent(SerdeConfig.ARTIFACT_ID_STRATEGY, SimpleTopicIdStrategy.class.getName());
         // Use the schema registered in step 1
-        props.putIfAbsent(AbstractKafkaSerializer.REGISTRY_GLOBAL_ID_STRATEGY_CONFIG_PARAM, FindLatestIdStrategy.class.getName());
+        props.putIfAbsent(SerdeConfig.GLOBAL_ID_STRATEGY, FindLatestIdStrategy.class.getName());
         // Enable validation in the serializer to ensure that the data we send is valid against the schema.
-        props.putIfAbsent(JsonSchemaSerDeConstants.REGISTRY_JSON_SCHEMA_VALIDATION_ENABLED, Boolean.TRUE);
+        props.putIfAbsent(SerdeConfig.VALIDATION_ENABLED, Boolean.TRUE);
 
         // Create the Kafka producer
         Producer<Object, Object> producer = new KafkaProducer<>(props);
@@ -207,10 +207,10 @@ public class SimpleJsonSchemaExample {
         // Use the Apicurio Registry provided Kafka Deserializer for JSON Schema
         props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonSchemaKafkaDeserializer.class.getName());
         // Enable validation in the deserializer to ensure that the data we receive is valid.
-        props.putIfAbsent(JsonSchemaSerDeConstants.REGISTRY_JSON_SCHEMA_VALIDATION_ENABLED, Boolean.TRUE);
+        props.putIfAbsent(SerdeConfig.VALIDATION_ENABLED, Boolean.TRUE);
 
         // Configure Service Registry location
-        props.putIfAbsent(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, REGISTRY_URL);
+        props.putIfAbsent(SerdeConfig.REGISTRY_URL, REGISTRY_URL);
         // No other configuration needed for the deserializer, because the globalId of the schema
         // the deserializer should use is sent as part of the payload.  So the deserializer simply
         // extracts that globalId and uses it to look up the Schema from the registry.

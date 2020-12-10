@@ -26,7 +26,7 @@ public class RegistryDemoUtil {
         LOGGER.info("=====> Creating artifact in the registry for JSON Schema with ID: {}", artifactId);
         try {
             final ByteArrayInputStream content = new ByteArrayInputStream(schema.getBytes(StandardCharsets.UTF_8));
-            final ArtifactMetaData metaData = service.createArtifact(artifactId, ArtifactType.JSON, IfExistsType.RETURN, content);
+            final ArtifactMetaData metaData = service.createArtifact(artifactId, ArtifactType.JSON, content, IfExistsType.RETURN, false);
             assert metaData != null;
             LOGGER.info("=====> Successfully created JSON Schema artifact in Service Registry: {}", metaData);
             LOGGER.info("---------------------------------------------------------");
